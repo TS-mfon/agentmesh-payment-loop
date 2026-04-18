@@ -51,7 +51,7 @@ function paidHandler(actionId, label, amountUsd) {
     const started = Number(req.header("X-REQUEST-START") || Date.now());
     const sequence = listEvents().length + 1;
     const result = buildResult(actionId, sequence, req);
-    const buyer = req.payment?.payer || req.header("X-DEMO-PAYER") || "0x000000000000000000000000000000000000bEEF";
+    const buyer = req.payment?.payer || "unknown";
     const event = saveEvent({
       actionType: actionId,
       endpoint: req.originalUrl,
@@ -60,14 +60,15 @@ function paidHandler(actionId, label, amountUsd) {
       amountMicrousd: Math.round(Number(amountUsd) * 1000000),
       resourceId: hash({ actionId, sequence }).slice(0, 32),
       requestHash: hash({ headers: req.headers, body: req.body, actionId }),
-      paymentResponse: req.payment?.response || req.header("PAYMENT-RESPONSE") || req.header("X-PAYMENT") || "local-demo",
+      paymentResponse: req.header("PAYMENT-RESPONSE") || "circle-gateway",
+      gatewayTransferId: req.payment?.transaction || "",
       latencyMs: Math.max(1, Date.now() - started),
     });
 
     if (actionId === "process-row") {
-      const job = getJob("demo") || { id: "demo", totalRows: 100, processedRows: 0, results: [] };
+      const job = getJob(req.params.jobId || "default") || { id: "default", totalRows: 100, processedRows: 0, results: [] };
       const processedRows = job.processedRows + 1;
-      upsertJob("demo", {
+      upsertJob(req.params.jobId || "default", {
         status: processedRows >= job.totalRows ? "complete" : "running",
         processedRows,
         totalRows: job.totalRows,
@@ -86,12 +87,16 @@ export function registerRoutes(app, guard) {
   app.get("/config", (_req, res) => res.json({ project }));
   app.get("/metrics", (_req, res) => res.json({ events: listEvents(), economics: economics() }));
   app.get("/economics", (_req, res) => res.json(economics()));
-  app.post("/demo/reset", (_req, res) => {
+  app.post("/admin/reset", (req, res) => {
+    const configuredToken = process.env.ADMIN_TOKEN;
+    if (!configuredToken || req.header("X-ADMIN-TOKEN") !== configuredToken) {
+      return res.status(403).json({ error: "admin token required" });
+    }
     resetStore();
     res.json({ ok: true });
   });
   app.post("/jobs", (req, res) => {
-    const id = req.body?.id || "demo";
+    const id = req.body?.id || "default";
     const totalRows = Number(req.body?.totalRows || 100);
     res.json(upsertJob(id, { id, status: "queued", totalRows, processedRows: 0, pricePerRowUsd: "0.0008", totalSpendUsd: "0.000000", results: [] }));
   });

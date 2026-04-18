@@ -1,16 +1,79 @@
-# How To Use AgentMesh Payment Loop
+# How To Use AgentMesh Payment Loop For Real Arc Payments
 
-## 1. Run The API Locally
+This is no longer a simulation. The deployed API requires real x402 payments through Circle Gateway on Arc Testnet.
+
+## Live URLs
+
+- Web: https://agentmesh-payment-loop.vercel.app
+- API: https://agentmesh-payment-loop-api.onrender.com
+- Seller address: `0x5905c9Dea6Ae52AA0947D8F7F218263889eDfC4E`
+- Network: Arc Testnet, `eip155:5042002`
+
+## 1. Prepare A Buyer Wallet
+
+Use a fresh rotated test wallet. Fund it with Arc Testnet USDC from the Circle faucet.
+
+Do not use the private key that was pasted in chat.
+
+## 2. Deposit To Circle Gateway
+
+```bash
+cd /home/sudodave/agentmesh-payment-loop/api
+BUYER_PRIVATE_KEY=0xYOUR_ROTATED_PRIVATE_KEY npm run gateway:deposit
+```
+
+## 3. Pay For A Product Action
+
+```bash
+cd /home/sudodave/agentmesh-payment-loop/api
+BUYER_PRIVATE_KEY=0xYOUR_ROTATED_PRIVATE_KEY API_URL=https://agentmesh-payment-loop-api.onrender.com npm run gateway:pay
+```
+
+Set `REPEAT=10` to make repeated real purchases:
+
+```bash
+BUYER_PRIVATE_KEY=0xYOUR_ROTATED_PRIVATE_KEY API_URL=https://agentmesh-payment-loop-api.onrender.com REPEAT=10 npm run gateway:pay
+```
+
+## 4. Agent Integration
+
+```js
+import { GatewayClient } from "@circle-fin/x402-batching/client";
+
+const client = new GatewayClient({
+  chain: "arcTestnet",
+  privateKey: process.env.BUYER_PRIVATE_KEY,
+  rpcUrl: "https://rpc.testnet.arc.network",
+});
+
+const result = await client.pay("https://agentmesh-payment-loop-api.onrender.com/paid/data/lead", {
+  method: "POST",
+  body: { task: "paid action" },
+});
+
+console.log(result.transaction, result.data);
+```
+
+## 5. Paid Endpoints
+
+- `POST /paid/data/lead` costs `$0.0010`.
+- `POST /paid/compute/score` costs `$0.0020`.
+- `POST /paid/verify/result` costs `$0.0005`.
+
+## 6. Verify Payment Requirements
+
+```bash
+cd /home/sudodave/agentmesh-payment-loop/api
+BUYER_PRIVATE_KEY=0xYOUR_ROTATED_PRIVATE_KEY API_URL=https://agentmesh-payment-loop-api.onrender.com npm run gateway:supports
+```
+
+## 7. Local Development
 
 ```bash
 cd /home/sudodave/agentmesh-payment-loop/api
 npm install
-ENABLE_REAL_X402=false npm start
+SELLER_ADDRESS=0x5905c9Dea6Ae52AA0947D8F7F218263889eDfC4E npm start
 ```
-
-The API starts on `http://127.0.0.1:8787` by default. Use `PORT=8788` or another port if needed.
-
-## 2. Run The Dashboard
 
 ```bash
 cd /home/sudodave/agentmesh-payment-loop/web
@@ -18,51 +81,7 @@ npm install
 VITE_API_URL=http://127.0.0.1:8787 npm run dev
 ```
 
-Open the Vite URL and click the demo button. The dashboard records paid actions, revenue, average price, and the card/gas margin failure.
-
-## 3. Run The Demo Script
-
-```bash
-cd /home/sudodave/agentmesh-payment-loop/api
-ENABLE_REAL_X402=false npm start
-```
-
-In another terminal:
-
-```bash
-cd /home/sudodave/agentmesh-payment-loop/api
-npm run demo:run
-```
-
-Expected demo: 60 paid actions across 3 priced endpoint(s).
-
-## 4. Use Real Circle Nanopayments
-
-Rotate any exposed keys before doing this.
-
-```bash
-cd /home/sudodave/agentmesh-payment-loop/api
-BUYER_PRIVATE_KEY=0x... npm run demo:deposit
-USE_REAL_GATEWAY=true BUYER_PRIVATE_KEY=0x... API_URL=https://your-render-api.example.com npm run demo:run
-```
-
-Set these environment variables in Render:
-
-```bash
-SELLER_ADDRESS=0x...
-ARC_RPC_URL=https://rpc.testnet.arc.network
-ARC_NETWORK=eip155:5042002
-ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
-ENABLE_REAL_X402=true
-```
-
-## 5. Paid Endpoints
-
-- `POST /paid/data/lead` costs `$0.0010` and runs 20 times in the demo.
-- `POST /paid/compute/score` costs `$0.0020` and runs 20 times in the demo.
-- `POST /paid/verify/result` costs `$0.0005` and runs 20 times in the demo.
-
-## 6. Verification Commands
+## 8. Verification
 
 ```bash
 cd /home/sudodave/agentmesh-payment-loop/api && npm test

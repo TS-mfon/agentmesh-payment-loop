@@ -4,8 +4,7 @@ export const project = {
   "track": "Agent-to-Agent Payment Loop",
   "tagline": "Autonomous agents pay each other for data, compute, and verification.",
   "problem": "Agents cannot become independent economic actors if every service call depends on centralized API keys, prepaid credits, monthly invoices, or custodial platform balances.",
-  "demoLabel": "Run 60 agent-to-agent payments",
-  "actions": [
+    "actions": [
     {
       "id": "data-lead",
       "method": "POST",
@@ -36,11 +35,11 @@ export const project = {
 
 export const env = {
   port: Number(process.env.PORT || 8787),
-  sellerAddress: process.env.SELLER_ADDRESS || "0x0000000000000000000000000000000000000000",
+  sellerAddress: process.env.SELLER_ADDRESS || "0x5905c9Dea6Ae52AA0947D8F7F218263889eDfC4E",
   arcNetwork: process.env.ARC_NETWORK || "eip155:5042002",
   arcRpcUrl: process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network",
   arcUsdcAddress: process.env.ARC_USDC_ADDRESS || "0x3600000000000000000000000000000000000000",
-  enableRealX402: process.env.ENABLE_REAL_X402 !== "false",
+  enableRealX402: true,
   dataFile: process.env.DATA_FILE || "./data/events.json",
   receiptContract: process.env.RECEIPT_CONTRACT_ADDRESS || "",
 };
